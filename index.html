@@ -39,7 +39,7 @@
   .section-title .bar{width:4px;height:18px;border-radius:2px;background:var(--c1)}
 
   /* 三类卡片 */
-  .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
   .cat-card{background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shadow);border-top:4px solid;position:relative}
   .cat-card.c1{border-top-color:var(--c1)} .cat-card.c2{border-top-color:var(--c2)} .cat-card.c3{border-top-color:var(--c3)}
   .cat-card .cat-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -122,11 +122,11 @@
     <div class="ov-amount"><span class="cur">¥</span><span id="totalAvail">0</span></div>
     <div class="ov-sub">
       <div class="ov-sub-item">资金总额<span class="v" id="totalAll">¥0</span></div>
-      <div class="ov-sub-item frozen">冻结金额<span class="v" id="totalFrozen">¥0</span></div>
+
     </div>
   </div>
 
-  <!-- 三类资金来源 -->
+  <!-- 两类资金来源 -->
   <div class="section-title"><span class="bar"></span>资金来源总表</div>
   <div class="cat-grid" id="catGrid"></div>
 
@@ -141,7 +141,7 @@
   <div class="section-title"><span class="bar"></span>原始数据校验表</div>
   <div class="raw-box">
     <h3>资金.xls 原始数据</h3>
-    <div class="raw-sub">G列 = B - C（USD可用）｜ H列 = D - E（RMB可用）｜ 与上方看板数据一一对应</div>
+    <div class="raw-sub">与上方看板数据一一对应，可逐行校验</div>
     <table class="raw" id="rawTable">
       <thead><tr id="rawHead"></tr></thead>
       <tbody id="rawBody"></tbody>
@@ -179,27 +179,18 @@ raw.forEach(d=>{
   d.pop_rmb=d.total_rmb-d.frozen_rmb;   // H列 = D - E
 });
 
-// ====== 三类资金来源 ======
-// 类1: USD资金池 — B总额, C冻结, G可用(=B-C)
-const C1_total_usd=raw.reduce((s,d)=>s+d.total_usd,0);
-const C1_frozen_usd=raw.reduce((s,d)=>s+d.frozen_usd,0);
-const C1_avail_usd=raw.reduce((s,d)=>s+d.pop_usd,0);  // G列合计
-const C1_total_rmb=C1_total_usd*RATE;
-const C1_frozen_rmb=C1_frozen_usd*RATE;
-const C1_avail_rmb=C1_avail_usd*RATE;
+// ====== 两类资金来源 ======
+// 类1: POP — G列(可用USD=B-C)×汇率 + H列(可用RMB=D-E)
+const C1_avail_usd=raw.reduce((s,d)=>s+d.pop_usd,0);
+const C1_avail_rmb=raw.reduce((s,d)=>s+d.pop_rmb,0);
+const C1_total=C1_avail_usd*RATE+C1_avail_rmb;
 
-// 类2: RMB资金池 — D总额, E冻结, H可用(=D-E)
-const C2_total=raw.reduce((s,d)=>s+d.total_rmb,0);
-const C2_frozen=raw.reduce((s,d)=>s+d.frozen_rmb,0);
-const C2_avail=raw.reduce((s,d)=>s+d.pop_rmb,0);  // H列合计
-
-// 类3: 全托 — F列
-const C3_total=raw.reduce((s,d)=>s+d.quantuo,0);
+// 类2: 全托 — F列
+const C2_total=raw.reduce((s,d)=>s+d.quantuo,0);
 
 // 总计
-const totalAll=C1_total_rmb+C2_total+C3_total;
-const totalFrozen=C1_frozen_rmb+C2_frozen;
-const totalAvail=totalAll-totalFrozen;
+const totalAll=C1_total+C2_total;
+const totalAvail=totalAll;
 
 const fmt=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt0=v=>Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
@@ -207,16 +198,14 @@ const fmt0=v=>Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
 // 总览
 document.getElementById('totalAvail').textContent=fmt(totalAvail);
 document.getElementById('totalAll').textContent='¥'+fmt0(totalAll);
-document.getElementById('totalFrozen').textContent='¥'+fmt0(totalFrozen);
+document.getElementById('totalFrozen').textContent='¥0';
 
-// 三类卡片
+// 两类卡片
 const cats=[
-  {cls:'c1',icon:'💵',label:'USD 资金池',total:C1_total_rmb,frozen:C1_frozen_rmb,avail:C1_avail_rmb,
-    orig:`总额 ${fmt0(C1_total_usd)} USD`,availOrig:`可用 ${fmt0(C1_avail_usd)} USD`,hasFz:true,pct:C1_total_rmb/totalAll*100},
-  {cls:'c2',icon:'💴',label:'RMB 资金池',total:C2_total,frozen:C2_frozen,avail:C2_avail,
-    orig:`总额 ${fmt0(C2_total)} RMB`,availOrig:`可用 ${fmt0(C2_avail)} RMB`,hasFz:true,pct:C2_total/totalAll*100},
-  {cls:'c3',icon:'📦',label:'全托',total:C3_total,frozen:0,avail:C3_total,
-    orig:`${fmt0(C3_total)} RMB`,availOrig:'',hasFz:false,pct:C3_total/totalAll*100},
+  {cls:'c1',icon:'🔄',label:'POP 可用',total:C1_total,avail:C1_total,
+    orig:`可用 ${fmt0(C1_avail_usd)} USD + ${fmt0(C1_avail_rmb)} RMB`,hasFz:false,pct:C1_total/totalAll*100},
+  {cls:'c3',icon:'📦',label:'全托',total:C2_total,avail:C2_total,
+    orig:`${fmt0(C2_total)} RMB`,hasFz:false,pct:C2_total/totalAll*100},
 ];
 document.getElementById('catGrid').innerHTML=cats.map(c=>`
   <div class="cat-card ${c.cls}">
@@ -224,8 +213,7 @@ document.getElementById('catGrid').innerHTML=cats.map(c=>`
     <div class="cat-total">¥${fmt0(c.total)}</div>
     <div class="cat-detail">
       ${c.orig}<br>
-      ${c.hasFz?`冻结 <span class="fz">¥${fmt0(c.frozen)}</span> ｜ 可用 <span class="ok">¥${fmt0(c.avail)}</span>`:'<span class="ok">无冻结</span>'}
-      ${c.availOrig?`<br><span class="hl">${c.availOrig}</span>`:''}
+      <span class="ok">无冻结</span>
     </div>
     <div class="cat-bar"><div class="fill" style="width:${c.pct.toFixed(1)}%"></div></div>
   </div>`).join('');
@@ -237,13 +225,12 @@ raw.forEach(d=>{
   d.total_equiv=d.total_usd*RATE+d.total_rmb+d.quantuo;
   d.frozen_equiv=d.frozen_usd*RATE+d.frozen_rmb;
   d.cats=[];
-  if(d.total_usd>0||d.frozen_usd>0) d.cats.push('c1');
-  if(d.total_rmb>0||d.frozen_rmb>0) d.cats.push('c2');
-  if(d.quantuo>0) d.cats.push('c3');
+  if(d.pop_usd>0||d.pop_rmb>0) d.cats.push('c1');
+  if(d.quantuo>0) d.cats.push('c2');
 });
 const sorted=[...raw].sort((a,b)=>b.avail_equiv-a.avail_equiv);
-const tagMap={c1:'tag-c1',c2:'tag-c2',c3:'tag-c3'};
-const tagLabel={c1:'USD',c2:'RMB',c3:'全托'};
+const tagMap={c1:'tag-c1',c2:'tag-c3'};
+const tagLabel={c1:'POP',c2:'全托'};
 
 document.getElementById('shopGrid').innerHTML=sorted.map((d,i)=>{
   const color=colors[i%colors.length];
@@ -269,13 +256,13 @@ document.getElementById('shopGrid').innerHTML=sorted.map((d,i)=>{
 // ====== 原始表格（含G、H列，标注公式） ======
 const rawCols=[
   {key:'shop',label:'店铺'},
-  {key:'total_usd',label:'B-账号总额(USD)'},
-  {key:'frozen_usd',label:'C-冻结(USD)'},
-  {key:'total_rmb',label:'D-账号总额(RMB)'},
-  {key:'frozen_rmb',label:'E-冻结(RMB)'},
-  {key:'quantuo',label:'F-全托(RMB)'},
-  {key:'pop_usd',label:'G-可用USD (=B-C)'},
-  {key:'pop_rmb',label:'H-可用RMB (=D-E)'},
+  {key:'total_usd',label:'账号总额(USD)'},
+  {key:'frozen_usd',label:'冻结金额(USD)'},
+  {key:'total_rmb',label:'账号总额(RMB)'},
+  {key:'frozen_rmb',label:'冻结金额(RMB)'},
+  {key:'quantuo',label:'全托(RMB)'},
+  {key:'pop_usd',label:'POP可用USD'},
+  {key:'pop_rmb',label:'POP可用RMB'},
 ];
 document.getElementById('rawHead').innerHTML=rawCols.map(c=>`<th>${c.label}</th>`).join('');
 
