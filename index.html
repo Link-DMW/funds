@@ -54,9 +54,27 @@
   .cat-card .cat-detail .hl{font-weight:600}
   .cat-card .cat-detail .fz{color:var(--c4);font-weight:600}
   .cat-card .cat-detail .ok{color:var(--c2);font-weight:600}
-  .cat-card .cat-bar{height:6px;border-radius:3px;margin-top:10px;overflow:hidden;background:#f0f2f5}
-  .cat-card .cat-bar{display:flex}.cat-card .cat-bar .fill-avail{height:100%;border-radius:3px 0 0 3px}.cat-card .cat-bar .fill-frozen{height:100%;border-radius:0 3px 3px 0;background:var(--c4)!important}
-  .cat-card.c1 .cat-bar .fill{background:var(--c1)} .cat-card.c2 .cat-bar .fill{background:var(--c2)} .cat-card.c3 .cat-bar .fill{background:var(--c3)}
+  .cat-card .cat-bar{height:6px;border-radius:3px;margin-top:10px;overflow:hidden;background:#f0f2f5;display:flex}
+  .cat-card .cat-bar .fill-avail{height:100%;border-radius:3px 0 0 3px}
+  .cat-card .cat-bar .fill-frozen{height:100%;border-radius:0 3px 3px 0;background:var(--c4)!important}
+  .cat-card.c1 .cat-bar .fill-avail{background:var(--c1)}
+  .cat-card.c3 .cat-bar .fill-avail{background:var(--c3)}
+
+  /* 全局比例条 */
+  .global-bar-box{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px}
+  .global-bar{display:flex;height:32px;border-radius:8px;overflow:hidden;background:#f0f2f5}
+  .global-bar .seg{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;transition:flex .3s}
+  .global-bar .seg-pop-avail{background:var(--c1)}
+  .global-bar .seg-pop-frozen{background:var(--c4)}
+  .global-bar .seg-qt-avail{background:var(--c3)}
+  .global-bar .seg-qt-frozen{background:var(--c4)}
+  .global-bar-legend{display:flex;gap:20px;margin-top:12px;flex-wrap:wrap}
+  .global-bar-legend .item{display:flex;align-items:center;gap:6px;font-size:12px}
+  .global-bar-legend .dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+  .global-bar-legend .dot.pop-avail{background:var(--c1)}
+  .global-bar-legend .dot.pop-frozen{background:var(--c4)}
+  .global-bar-legend .dot.qt-avail{background:var(--c3)}
+  .global-bar-legend .dot.qt-frozen{background:var(--c4)}
 
   /* 图表 */
   .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
@@ -129,6 +147,12 @@
   <!-- 两类资金来源 -->
   <div class="section-title"><span class="bar"></span>资金来源总表</div>
   <div class="cat-grid" id="catGrid"></div>
+
+  <!-- 全局比例条 -->
+  <div class="global-bar-box">
+    <div class="global-bar" id="globalBar"></div>
+    <div class="global-bar-legend" id="globalBarLegend"></div>
+  </div>
 
   <!-- 店铺列表 -->
   <div class="section-title"><span class="bar"></span>店铺资金明细</div>
@@ -229,6 +253,28 @@ document.getElementById('catGrid').innerHTML=cats.map(c=>`
       <div class="fill-frozen" style="width:${c.frozenPct.toFixed(1)}%"></div>
     </div>
   </div>`).join('');
+
+// 全局比例条: 总宽度=总资金100%, POP占一段(蓝色), 其中冻结橙色; 全托占一段(橙色), 其中冻结红色
+const popPct=C1_total/totalAll*100;
+const popFrozenPct=C1_frozen/totalAll*100;
+const popAvailPct=C1_avail/totalAll*100;
+const qtPct=C2_total/totalAll*100;
+const qtFrozenPct=C2_frozen/totalAll*100;
+const qtAvailPct=C2_avail/totalAll*100;
+
+document.getElementById('globalBar').innerHTML=`
+  <div class="seg seg-pop-avail" style="flex:${popAvailPct.toFixed(2)}" title="POP可用 ${popAvailPct.toFixed(1)}%">${popAvailPct>5?'POP可用 '+popAvailPct.toFixed(1)+'%':''}</div>
+  <div class="seg seg-pop-frozen" style="flex:${popFrozenPct.toFixed(2)}" title="POP冻结 ${popFrozenPct.toFixed(1)}%">${popFrozenPct>3?'冻结 '+popFrozenPct.toFixed(1)+'%':''}</div>
+  <div class="seg seg-qt-avail" style="flex:${qtAvailPct.toFixed(2)}" title="全托可用 ${qtAvailPct.toFixed(1)}%">${qtAvailPct>5?'全托 '+qtAvailPct.toFixed(1)+'%':''}</div>
+  <div class="seg seg-qt-frozen" style="flex:${qtFrozenPct.toFixed(2)}" title="全托冻结 ${qtFrozenPct.toFixed(1)}%"></div>
+`;
+
+document.getElementById('globalBarLegend').innerHTML=`
+  <div class="item"><span class="dot pop-avail"></span>POP可用 ¥${fmt0(C1_avail)} (${popAvailPct.toFixed(1)}%)</div>
+  <div class="item"><span class="dot pop-frozen"></span>POP冻结 ¥${fmt0(C1_frozen)} (${popFrozenPct.toFixed(1)}%)</div>
+  <div class="item"><span class="dot qt-avail"></span>全托可用 ¥${fmt0(C2_avail)} (${qtAvailPct.toFixed(1)}%)</div>
+  <div class="item"><span class="dot qt-frozen"></span>全托冻结 ¥${fmt0(C2_frozen)} (${qtFrozenPct.toFixed(1)}%)</div>
+`;
 
 // 店铺列表 — 可用 = G列(USD可用)×汇率 + H列(RMB可用) + F列(全托)
 const colors=['#6c5ce7','#00b894','#f0a031','#e17055','#a29bfe','#0984e3','#fd79a8','#00cec9','#fab1a0','#74b9ff','#55efc4','#ffeaa7','#6c5ce7','#00b894','#f0a031','#e17055','#a29bfe','#0984e3'];
