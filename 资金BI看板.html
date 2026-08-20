@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>店铺资金 BI 看板</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f6fa; --card:#fff; --text:#1a1a2e; --sub:#8e94a3;
+    --c1:#6c5ce7; --c2:#00b894; --c3:#f0a031; --c4:#e17055;
+    --border:#eef0f5; --shadow:0 2px 16px rgba(0,0,0,.05);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,'SF Pro Display','Segoe UI','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);padding:20px}
+  .container{max-width:1100px;margin:0 auto}
+
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  .header h1{font-size:22px;font-weight:700}
+  .header .meta{font-size:13px;color:var(--sub)}
+
+  /* 总览 */
+  .overview-card{
+    background:linear-gradient(135deg,#6c5ce7 0%,#a29bfe 100%);
+    border-radius:20px;padding:28px;color:#fff;position:relative;overflow:hidden;
+    box-shadow:0 8px 32px rgba(108,92,231,.2);margin-bottom:20px;
+  }
+  .overview-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.08)}
+  .overview-card::after{content:'';position:absolute;bottom:-40px;left:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.06)}
+  .ov-label{font-size:14px;opacity:.85;position:relative;z-index:1}
+  .ov-amount{font-size:38px;font-weight:800;letter-spacing:-1px;margin-top:6px;position:relative;z-index:1}
+  .ov-amount .cur{font-size:22px;opacity:.8;margin-right:2px}
+  .ov-sub{display:flex;gap:32px;margin-top:16px;position:relative;z-index:1;flex-wrap:wrap}
+  .ov-sub-item{font-size:13px;opacity:.85}
+  .ov-sub-item .v{font-weight:700;font-size:16px;display:block;margin-top:2px}
+  .ov-sub-item.frozen .v{color:#ffd6d6}
+
+  .section-title{font-size:16px;font-weight:700;margin:24px 0 14px;display:flex;align-items:center;gap:8px}
+  .section-title .bar{width:4px;height:18px;border-radius:2px;background:var(--c1)}
+
+  /* 三类卡片 */
+  .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+  .cat-card{background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shadow);border-top:4px solid;position:relative}
+  .cat-card.c1{border-top-color:var(--c1)} .cat-card.c2{border-top-color:var(--c2)} .cat-card.c3{border-top-color:var(--c3)}
+  .cat-card .cat-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .cat-card .cat-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .cat-card.c1 .cat-icon{background:rgba(108,92,231,.1);color:var(--c1)}
+  .cat-card.c2 .cat-icon{background:rgba(0,184,148,.1);color:var(--c2)}
+  .cat-card.c3 .cat-icon{background:rgba(240,160,49,.1);color:var(--c3)}
+  .cat-card .cat-label{font-size:13px;font-weight:600;color:var(--sub)}
+  .cat-card .cat-total{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px}
+  .cat-card.c1 .cat-total{color:var(--c1)} .cat-card.c2 .cat-total{color:var(--c2)} .cat-card.c3 .cat-total{color:var(--c3)}
+  .cat-card .cat-detail{font-size:12px;color:var(--sub);line-height:1.7}
+  .cat-card .cat-detail .hl{font-weight:600}
+  .cat-card .cat-detail .fz{color:var(--c4);font-weight:600}
+  .cat-card .cat-detail .ok{color:var(--c2);font-weight:600}
+  .cat-card .cat-bar{height:6px;border-radius:3px;margin-top:10px;overflow:hidden;background:#f0f2f5}
+  .cat-card .cat-bar .fill{height:100%;border-radius:3px}
+  .cat-card.c1 .cat-bar .fill{background:var(--c1)} .cat-card.c2 .cat-bar .fill{background:var(--c2)} .cat-card.c3 .cat-bar .fill{background:var(--c3)}
+
+  /* 图表 */
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+  .chart-box{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+  .chart-box h3{font-size:14px;font-weight:600;margin-bottom:14px}
+  .chart{width:100%;height:260px}
+
+  /* 店铺列表 */
+  .list-box{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px;overflow-x:auto}
+  .list-box h3{font-size:16px;font-weight:700;margin-bottom:14px}
+  .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+  .shop-item{display:flex;align-items:center;padding:12px;border-radius:12px;background:#f8f9fc;transition:background .2s}
+  .shop-item:hover{background:#f0f2ff}
+  .shop-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;margin-right:12px}
+  .shop-info{flex:1;min-width:0}
+  .shop-name{font-size:14px;font-weight:600}
+  .shop-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+  .tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+  .tag-c1{background:rgba(108,92,231,.1);color:var(--c1)}
+  .tag-c2{background:rgba(0,184,148,.1);color:var(--c2)}
+  .tag-c3{background:rgba(240,160,49,.12);color:var(--c3)}
+  .tag-none{background:#eef0f5;color:var(--sub)}
+  .tag-fz{background:rgba(225,112,85,.1);color:var(--c4)}
+  .shop-amount{text-align:right;flex-shrink:0}
+  .shop-amount .val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .shop-amount .sub{font-size:11px;color:var(--sub);margin-top:2px}
+  .shop-amount .val.avail{color:var(--c2)}
+
+  /* 原始表 */
+  .raw-box{background:var(--card);border-radius:16px;padding:20px;box-shadow:var(--shadow);overflow-x:auto}
+  .raw-box h3{font-size:16px;font-weight:700;margin-bottom:6px}
+  .raw-box .raw-sub{font-size:12px;color:var(--sub);margin-bottom:14px}
+  table.raw{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
+  table.raw th{background:#f0f2ff;padding:10px 12px;text-align:right;color:var(--c1);font-weight:600;white-space:nowrap;border-bottom:2px solid var(--border)}
+  table.raw th:first-child{text-align:left}
+  table.raw td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  table.raw td:first-child{text-align:left;font-weight:600}
+  table.raw tr:hover td{background:#f8f9fc}
+  table.raw tr.summary td{font-weight:700;background:#f0f2ff;color:var(--c1);border-top:2px solid var(--c1)}
+  table.raw .fz{color:var(--c4)} table.raw .avail{color:var(--c2)} table.raw .empty{color:#ccc}
+  table.raw .formula{color:var(--sub);font-style:italic;font-size:11px}
+
+  @media(max-width:768px){
+    .cat-grid{grid-template-columns:1fr}
+    .chart-row{grid-template-columns:1fr}
+    .shop-grid{grid-template-columns:1fr}
+    .ov-amount{font-size:30px}
+    .ov-sub{gap:16px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>💰 店铺资金 BI 看板</h1>
+    <div class="meta">数据来源：资金.xls ｜ 18个店铺 ｜ 2026-08-20（汇率 1USD=6.7808CNY）</div>
+  </div>
+
+  <!-- 总览 -->
+  <div class="overview-card">
+    <div class="ov-label">总可用资金（折算 RMB）</div>
+    <div class="ov-amount"><span class="cur">¥</span><span id="totalAvail">0</span></div>
+    <div class="ov-sub">
+      <div class="ov-sub-item">资金总额<span class="v" id="totalAll">¥0</span></div>
+
+    </div>
+  </div>
+
+  <!-- 两类资金来源 -->
+  <div class="section-title"><span class="bar"></span>资金来源总表</div>
+  <div class="cat-grid" id="catGrid"></div>
+
+  <!-- 店铺列表 -->
+  <div class="section-title"><span class="bar"></span>店铺资金明细</div>
+  <div class="list-box">
+    <h3>全部店铺（按可用资金降序）</h3>
+    <div class="shop-grid" id="shopGrid"></div>
+  </div>
+
+  <!-- 原始表格 -->
+  <div class="section-title"><span class="bar"></span>原始数据校验表</div>
+  <div class="raw-box">
+    <h3>资金.xls 原始数据</h3>
+    <div class="raw-sub">与上方看板数据一一对应，可逐行校验</div>
+    <table class="raw" id="rawTable">
+      <thead><tr id="rawHead"></tr></thead>
+      <tbody id="rawBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const RATE=6.7808; // 2026-08-20（汇率 1USD=6.7808CNY） 央行中间价 1USD=6.7808CNY
+const raw=[
+  {shop:'profile',total_usd:14954.41,frozen_usd:3847.0,total_rmb:0,frozen_rmb:0,quantuo:0},
+  {shop:'Sara',total_usd:11975.84,frozen_usd:10770.0,total_rmb:0,frozen_rmb:0,quantuo:686.29},
+  {shop:'8Li',total_usd:11188.2,frozen_usd:2308.0,total_rmb:0,frozen_rmb:0,quantuo:853.74},
+  {shop:'Catherine',total_usd:7207.67,frozen_usd:2308.0,total_rmb:0,frozen_rmb:0,quantuo:0.89},
+  {shop:'Imice',total_usd:4.34,frozen_usd:0,total_rmb:1020.69,frozen_rmb:1000.0,quantuo:0},
+  {shop:'nexusclick',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:5313.1},
+  {shop:'NexusPOP',total_usd:4.69,frozen_usd:0,total_rmb:2255.12,frozen_rmb:0,quantuo:0},
+  {shop:'David',total_usd:3528.58,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:512.01},
+  {shop:'nancytuo',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:770.52},
+  {shop:'Linda',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:315.75},
+  {shop:'bana',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:663.11},
+  {shop:'Otmil',total_usd:0,frozen_usd:0,total_rmb:8566.97,frozen_rmb:7000.0,quantuo:886.49},
+  {shop:'Ella',total_usd:0,frozen_usd:0,total_rmb:2201.12,frozen_rmb:2000.0,quantuo:242.57},
+  {shop:'Eric',total_usd:8807.1,frozen_usd:308.0,total_rmb:2.0,frozen_rmb:0,quantuo:85.5},
+  {shop:'sam',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:320.78},
+  {shop:'Elong',total_usd:5045.05,frozen_usd:616.0,total_rmb:0,frozen_rmb:0,quantuo:1002.46},
+  {shop:'Petery',total_usd:0.01,frozen_usd:0,total_rmb:4001.83,frozen_rmb:4000.0,quantuo:563.95},
+  {shop:'NKtuo',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:2359.78},
+];
+
+// ====== 计算G列(USD可用=B-C)和H列(RMB可用=D-E) ======
+raw.forEach(d=>{
+  d.pop_usd=d.total_usd-d.frozen_usd;   // G列 = B - C
+  d.pop_rmb=d.total_rmb-d.frozen_rmb;   // H列 = D - E
+});
+
+// ====== 两类资金来源 ======
+// 类1: POP — G列(可用USD=B-C)×汇率 + H列(可用RMB=D-E)
+const C1_avail_usd=raw.reduce((s,d)=>s+d.pop_usd,0);
+const C1_avail_rmb=raw.reduce((s,d)=>s+d.pop_rmb,0);
+const C1_total=C1_avail_usd*RATE+C1_avail_rmb;
+
+// 类2: 全托 — F列
+const C2_total=raw.reduce((s,d)=>s+d.quantuo,0);
+
+// 总计
+const totalAll=C1_total+C2_total;
+const totalAvail=totalAll;
+
+const fmt=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=v=>Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
+
+// 总览
+document.getElementById('totalAvail').textContent=fmt(totalAvail);
+document.getElementById('totalAll').textContent='¥'+fmt0(totalAll);
+document.getElementById('totalFrozen').textContent='¥0';
+
+// 两类卡片
+const cats=[
+  {cls:'c1',icon:'🔄',label:'POP 可用',total:C1_total,avail:C1_total,
+    orig:`可用 ${fmt0(C1_avail_usd)} USD + ${fmt0(C1_avail_rmb)} RMB`,hasFz:false,pct:C1_total/totalAll*100},
+  {cls:'c3',icon:'📦',label:'全托',total:C2_total,avail:C2_total,
+    orig:`${fmt0(C2_total)} RMB`,hasFz:false,pct:C2_total/totalAll*100},
+];
+document.getElementById('catGrid').innerHTML=cats.map(c=>`
+  <div class="cat-card ${c.cls}">
+    <div class="cat-head"><span class="cat-icon">${c.icon}</span><span class="cat-label">${c.label}</span></div>
+    <div class="cat-total">¥${fmt0(c.total)}</div>
+    <div class="cat-detail">
+      ${c.orig}<br>
+      <span class="ok">无冻结</span>
+    </div>
+    <div class="cat-bar"><div class="fill" style="width:${c.pct.toFixed(1)}%"></div></div>
+  </div>`).join('');
+
+// 店铺列表 — 可用 = G列(USD可用)×汇率 + H列(RMB可用) + F列(全托)
+const colors=['#6c5ce7','#00b894','#f0a031','#e17055','#a29bfe','#0984e3','#fd79a8','#00cec9','#fab1a0','#74b9ff','#55efc4','#ffeaa7','#6c5ce7','#00b894','#f0a031','#e17055','#a29bfe','#0984e3'];
+raw.forEach(d=>{
+  d.avail_equiv=d.pop_usd*RATE+d.pop_rmb+d.quantuo;  // G×汇率 + H + F
+  d.total_equiv=d.total_usd*RATE+d.total_rmb+d.quantuo;
+  d.frozen_equiv=d.frozen_usd*RATE+d.frozen_rmb;
+  d.cats=[];
+  if(d.pop_usd>0||d.pop_rmb>0) d.cats.push('c1');
+  if(d.quantuo>0) d.cats.push('c2');
+});
+const sorted=[...raw].sort((a,b)=>b.avail_equiv-a.avail_equiv);
+const tagMap={c1:'tag-c1',c2:'tag-c3'};
+const tagLabel={c1:'POP',c2:'全托'};
+
+document.getElementById('shopGrid').innerHTML=sorted.map((d,i)=>{
+  const color=colors[i%colors.length];
+  const hasFz=d.frozen_equiv>0;
+  const fzPct=d.total_equiv>0?(d.frozen_equiv/d.total_equiv*100).toFixed(0):0;
+  return `
+    <div class="shop-item">
+      <div class="shop-icon" style="background:${color}">${d.shop.charAt(0).toUpperCase()}</div>
+      <div class="shop-info">
+        <div class="shop-name">${d.shop}</div>
+        <div class="shop-tags">
+          ${d.cats.map(c=>`<span class="tag ${tagMap[c]}">${tagLabel[c]}</span>`).join('')||'<span class="tag tag-none">无余额</span>'}
+          ${hasFz?`<span class="tag tag-fz">冻结${fzPct}%</span>`:''}
+        </div>
+      </div>
+      <div class="shop-amount">
+        <div class="val avail">¥${fmt0(d.avail_equiv)}</div>
+        <div class="sub">总额 ¥${fmt0(d.total_equiv)}</div>
+      </div>
+    </div>`;
+}).join('');
+
+// ====== 原始表格（含G、H列，标注公式） ======
+const rawCols=[
+  {key:'shop',label:'店铺'},
+  {key:'total_usd',label:'账号总额(USD)'},
+  {key:'frozen_usd',label:'冻结金额(USD)'},
+  {key:'total_rmb',label:'账号总额(RMB)'},
+  {key:'frozen_rmb',label:'冻结金额(RMB)'},
+  {key:'quantuo',label:'全托(RMB)'},
+  {key:'pop_usd',label:'POP可用USD'},
+  {key:'pop_rmb',label:'POP可用RMB'},
+];
+document.getElementById('rawHead').innerHTML=rawCols.map(c=>`<th>${c.label}</th>`).join('');
+
+const summaryRow={
+  shop:'汇总',
+  total_usd:raw.reduce((s,d)=>s+d.total_usd,0),
+  frozen_usd:raw.reduce((s,d)=>s+d.frozen_usd,0),
+  total_rmb:raw.reduce((s,d)=>s+d.total_rmb,0),
+  frozen_rmb:raw.reduce((s,d)=>s+d.frozen_rmb,0),
+  quantuo:14576.94,
+  pop_usd:raw.reduce((s,d)=>s+d.pop_usd,0),
+  pop_rmb:raw.reduce((s,d)=>s+d.pop_rmb,0),
+};
+
+function rawRow(d,isSummary){
+  return '<tr class="'+(isSummary?'summary':'')+'">'+rawCols.map(c=>{
+    if(c.key==='shop') return `<td>${d.shop}</td>`;
+    let v=Number(d[c.key]);
+    if(!v) return '<td class="empty"></td>';
+    let cls='';
+    if(c.key.includes('frozen')) cls='fz';
+    if(c.key==='pop_usd'||c.key==='pop_rmb') cls='avail';
+    return `<td class="${cls}">${fmt(v)}</td>`;
+  }).join('')+'</tr>';
+}
+document.getElementById('rawBody').innerHTML=raw.map(d=>rawRow(d,false)).join('')+rawRow(summaryRow,true);
+
+window.addEventListener('resize',()=>{document.querySelectorAll('.chart').forEach(el=>{const inst=echarts.getInstanceByDom(el);if(inst)inst.resize()})});
+</script>
+</body>
+</html>
