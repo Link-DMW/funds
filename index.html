@@ -116,7 +116,7 @@
 
   <div class="header">
     <h1>💰 店铺资金 BI 看板</h1>
-    <div class="meta">数据来源：资金.xls ｜ 18个店铺 ｜ 2026-08-21（汇率 1USD=6.7817CNY）</div>
+    <div class="meta">数据来源：资金.xls ｜ 18个店铺 ｜ 2026-08-22（汇率 1USD=6.7817CNY）</div>
   </div>
 
   <!-- 总览 -->
@@ -154,26 +154,26 @@
 </div>
 
 <script>
-const RATE=6.7808; // 2026-08-21（汇率 1USD=6.7817CNY） 央行中间价 1USD=6.7808CNY
+const RATE=6.7817; // 2026-08-22（汇率 1USD=6.7817CNY） 央行中间价 1USD=6.7808CNY
 const raw=[
-  {shop:'profile',total_usd:16276.65,frozen_usd:3847.0,total_rmb:0,frozen_rmb:0,quantuo:0},
-  {shop:'Sara',total_usd:13744.37,frozen_usd:10770.0,total_rmb:0,frozen_rmb:0,quantuo:2938.22},
-  {shop:'8Li',total_usd:11933.82,frozen_usd:2308.0,total_rmb:0,frozen_rmb:0,quantuo:1018.46},
+  {shop:'profile',total_usd:17063.94,frozen_usd:3847.0,total_rmb:0,frozen_rmb:0,quantuo:0},
+  {shop:'Sara',total_usd:13890.77,frozen_usd:10770.0,total_rmb:0,frozen_rmb:0,quantuo:642.92},
+  {shop:'8Li',total_usd:12044.22,frozen_usd:2308.0,total_rmb:0,frozen_rmb:0,quantuo:268.73},
   {shop:'Catherine',total_usd:7663.92,frozen_usd:2308.0,total_rmb:0,frozen_rmb:0,quantuo:8.54},
-  {shop:'Imice',total_usd:4.16,frozen_usd:0,total_rmb:1000.0,frozen_rmb:1000.0,quantuo:0},
-  {shop:'nexusclick',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:2330.3},
-  {shop:'NexusPOP',total_usd:4.69,frozen_usd:0,total_rmb:2179.83,frozen_rmb:0,quantuo:0},
-  {shop:'David',total_usd:3528.58,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:32.21},
-  {shop:'nancytuo',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:2027.77},
-  {shop:'Linda',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:1136.55},
-  {shop:'bana',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:1135.16},
-  {shop:'Otmil',total_usd:0,frozen_usd:0,total_rmb:7951.12,frozen_rmb:7000.0,quantuo:888.5},
-  {shop:'Ella',total_usd:0,frozen_usd:0,total_rmb:2668.95,frozen_rmb:2000.0,quantuo:631.76},
-  {shop:'Eric',total_usd:8843.04,frozen_usd:308.0,total_rmb:2.0,frozen_rmb:0,quantuo:540.42},
+  {shop:'Imice',total_usd:3.99,frozen_usd:0,total_rmb:1000.0,frozen_rmb:1000.0,quantuo:0},
+  {shop:'nexusclick',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:1104.91},
+  {shop:'NexusPOP',total_usd:4.69,frozen_usd:0,total_rmb:2043.92,frozen_rmb:0,quantuo:0},
+  {shop:'David',total_usd:3528.58,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:306.35},
+  {shop:'nancytuo',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:429.94},
+  {shop:'Linda',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:1051.09},
+  {shop:'bana',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:117.46},
+  {shop:'Otmil',total_usd:0,frozen_usd:0,total_rmb:7438.32,frozen_rmb:7000.0,quantuo:329.84},
+  {shop:'Ella',total_usd:0,frozen_usd:0,total_rmb:2645.19,frozen_rmb:2000.0,quantuo:550.51},
+  {shop:'Eric',total_usd:8933.54,frozen_usd:308.0,total_rmb:2.0,frozen_rmb:0,quantuo:672.27},
   {shop:'sam',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:54.44},
-  {shop:'Elong',total_usd:5253.3,frozen_usd:616.0,total_rmb:0,frozen_rmb:0,quantuo:495.72},
-  {shop:'Petery',total_usd:0.01,frozen_usd:0,total_rmb:4017.1,frozen_rmb:4000.0,quantuo:0.95},
-  {shop:'NKtuo',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:1025.27},
+  {shop:'Elong',total_usd:5463.17,frozen_usd:616.0,total_rmb:0,frozen_rmb:0,quantuo:811.67},
+  {shop:'Petery',total_usd:0.01,frozen_usd:0,total_rmb:3885.3,frozen_rmb:3885.3,quantuo:0.95},
+  {shop:'NKtuo',total_usd:0,frozen_usd:0,total_rmb:0,frozen_rmb:0,quantuo:770.95},
 ];
 
 // ====== 计算G列(USD可用=B-C)和H列(RMB可用=D-E) ======
@@ -287,7 +287,7 @@ const summaryRow={
   frozen_usd:raw.reduce((s,d)=>s+d.frozen_usd,0),
   total_rmb:raw.reduce((s,d)=>s+d.total_rmb,0),
   frozen_rmb:raw.reduce((s,d)=>s+d.frozen_rmb,0),
-  quantuo:14264.27,
+  quantuo:7120.57,
   pop_usd:raw.reduce((s,d)=>s+d.pop_usd,0),
   pop_rmb:raw.reduce((s,d)=>s+d.pop_rmb,0),
 };
